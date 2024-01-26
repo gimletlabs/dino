@@ -34,32 +34,11 @@ def eval_linear(args):
     print("\n".join("%s: %s" % (k, str(v)) for k, v in sorted(dict(vars(args)).items())))
     cudnn.benchmark = True
 
-    # ============ building network ... ============
-    # if the network is a Vision Transformer (i.e. vit_tiny, vit_small, vit_base)
-    if args.arch in vits.__dict__.keys():
-        model = vits.__dict__[args.arch](patch_size=args.patch_size, num_classes=0)
-        embed_dim = model.embed_dim * (args.n_last_blocks + int(args.avgpool_patchtokens))
-    # if the network is a XCiT
-    elif "xcit" in args.arch:
-        model = torch.hub.load('facebookresearch/xcit:main', args.arch, num_classes=0)
-        embed_dim = model.embed_dim
-    # otherwise, we check if the architecture is in torchvision models
-    elif args.arch in torchvision_models.__dict__.keys():
-        model = torchvision_models.__dict__[args.arch]()
-        embed_dim = model.fc.weight.shape[1]
-        model.fc = nn.Identity()
-    else:
-        print(f"Unknow architecture: {args.arch}")
-        sys.exit(1)
+    model_name = 'dinov2_vits14_reg_lc'
+    model = torch.hub.load('facebookresearch/dinov2', model_name)
     model.cuda()
     model.eval()
-    # load weights to evaluate
-    utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     print(f"Model {args.arch} built.")
-
-    linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
-    linear_classifier = linear_classifier.cuda()
-    linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
     # ============ preparing data ... ============
     val_transform = pth_transforms.Compose([
@@ -77,8 +56,7 @@ def eval_linear(args):
     )
 
     if args.evaluate:
-        utils.load_pretrained_linear_weights(linear_classifier, args.arch, args.patch_size)
-        test_stats = validate_network(val_loader, model, linear_classifier, args.n_last_blocks, args.avgpool_patchtokens)
+        test_stats = validate_network(val_loader, model, args.n_last_blocks, args.avgpool_patchtokens)
         print(f"Accuracy of the network on the {len(dataset_val)} test images: {test_stats['acc1']:.1f}%")
         return
 
@@ -193,8 +171,7 @@ def train(model, linear_classifier, optimizer, loader, epoch, n, avgpool):
 
 
 @torch.no_grad()
-def validate_network(val_loader, model, linear_classifier, n, avgpool):
-    linear_classifier.eval()
+def validate_network(val_loader, model, n, avgpool):
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     for inp, target in metric_logger.log_every(val_loader, 20, header):
@@ -204,33 +181,17 @@ def validate_network(val_loader, model, linear_classifier, n, avgpool):
 
         # forward
         with torch.no_grad():
-            if "vit" in args.arch:
-                intermediate_output = model.get_intermediate_layers(inp, n)
-                output = torch.cat([x[:, 0] for x in intermediate_output], dim=-1)
-                if avgpool:
-                    output = torch.cat((output.unsqueeze(-1), torch.mean(intermediate_output[-1][:, 1:], dim=1).unsqueeze(-1)), dim=-1)
-                    output = output.reshape(output.shape[0], -1)
-            else:
-                output = model(inp)
-        output = linear_classifier(output)
+            output = model(inp)
         loss = nn.CrossEntropyLoss()(output, target)
 
-        if linear_classifier.module.num_labels >= 5:
-            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
-        else:
-            acc1, = utils.accuracy(output, target, topk=(1,))
+        acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
 
         batch_size = inp.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
-        if linear_classifier.module.num_labels >= 5:
-            metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
-    if linear_classifier.module.num_labels >= 5:
-        print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'
-          .format(top1=metric_logger.acc1, top5=metric_logger.acc5, losses=metric_logger.loss))
-    else:
-        print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
-          .format(top1=metric_logger.acc1, losses=metric_logger.loss))
+        metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
+    print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'
+      .format(top1=metric_logger.acc1, top5=metric_logger.acc5, losses=metric_logger.loss))
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
