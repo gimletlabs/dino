@@ -7,6 +7,7 @@
   - [ViT-S/16](#vit-s16)
   - [ViT-S/16 fp16](#vit-s16-fp16)
   - [ViT-S/14 DinoV2](#vit-s14-dinov2)
+  - [ViT-Ti/16](#vit-ti16)
 
 <!-- /TOC -->
 
@@ -154,4 +155,14 @@ Test:  [390/391]  eta: 0:00:00  loss: 0.589799 (0.725904)  acc1: 80.468750 (80.8
 Test: Total time: 0:00:57 (0.146009 s / it)
 * Acc@1 80.892 Acc@5 95.444 loss 0.726
 Accuracy of the network on the 50000 test images: 80.9%
+```
+
+## ViT-Ti/16
+
+Trained manually on TinyImageNet and separately on ImageNet.
+
+To train the Linear Classifier head:
+
+```sh
+python ./eval_linear.py --pretrained_weights=weights/dino_vitti_tinyimageimagenet.pth --data_path=/datasets/imagenet/ILSVRC/Data/CLS-LOC/ --arch=vit_tiny
 ```
