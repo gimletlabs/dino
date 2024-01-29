@@ -20,7 +20,7 @@ from torch import nn
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 from torchvision import datasets
-from torchvision import transforms as pth_transforms
+import torchvision.transforms.v2 as pth_transforms
 from torchvision import models as torchvision_models
 
 import utils
@@ -32,7 +32,8 @@ def extract_feature_pipeline(args):
     transform = pth_transforms.Compose([
         pth_transforms.Resize(256, interpolation=3),
         pth_transforms.CenterCrop(224),
-        pth_transforms.ToTensor(),
+        pth_transforms.ToImage(),
+        pth_transforms.ToDtype(torch.float16 if args.half else torch.float32, scale=True),
         pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
     dataset_train = ReturnIndexDataset(os.path.join(args.data_path, "train"), transform=transform)
@@ -67,6 +68,8 @@ def extract_feature_pipeline(args):
     else:
         print(f"Architecture {args.arch} non supported")
         sys.exit(1)
+    if args.half:
+        model.half()
     model.cuda()
     utils.load_pretrained_weights(model, args.pretrained_weights, args.checkpoint_key, args.arch, args.patch_size)
     model.eval()
@@ -85,7 +88,7 @@ def extract_feature_pipeline(args):
     test_labels = torch.tensor([s[-1] for s in dataset_val.samples]).long()
     # save features and labels
     if args.dump_features and dist.get_rank() == 0:
-        os.mkdirs(args.dump_features)
+        os.makedirs(args.dump_features, exist_ok=True)
         torch.save(train_features.cpu(), os.path.join(args.dump_features, "trainfeat.pth"))
         torch.save(test_features.cpu(), os.path.join(args.dump_features, "testfeat.pth"))
         torch.save(train_labels.cpu(), os.path.join(args.dump_features, "trainlabels.pth"))
@@ -108,6 +111,8 @@ def extract_features(model, data_loader, use_cuda=True, multiscale=False):
         # init storage feature matrix
         if dist.get_rank() == 0 and features is None:
             features = torch.zeros(len(data_loader.dataset), feats.shape[-1])
+            if args.half:
+                features = features.half()
             if use_cuda:
                 features = features.cuda(non_blocking=True)
             print(f"Storing features into tensor of shape {features.shape}")
@@ -200,6 +205,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_cuda', default=True, type=utils.bool_flag,
         help="Should we store the features on GPU? We recommend setting this to False if you encounter OOM")
     parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
+    parser.add_argument('--half', dest='half', action='store_true', help='Whether to convert and evaluate the model using float16.')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument("--checkpoint_key", default="teacher", type=str,
         help='Key to use in the checkpoint (example: "teacher")')
