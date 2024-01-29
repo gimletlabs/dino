@@ -21,7 +21,7 @@ from torch import nn
 import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 from torchvision import datasets
-from torchvision import transforms as pth_transforms
+import torchvision.transforms.v2 as pth_transforms
 from torchvision import models as torchvision_models
 
 import utils
@@ -51,6 +51,8 @@ def eval_linear(args):
     else:
         print(f"Unknow architecture: {args.arch}")
         sys.exit(1)
+    if args.half:
+        model.half()
     model.cuda()
     model.eval()
     # load weights to evaluate
@@ -58,6 +60,8 @@ def eval_linear(args):
     print(f"Model {args.arch} built.")
 
     linear_classifier = LinearClassifier(embed_dim, num_labels=args.num_labels)
+    if args.half:
+        linear_classifier = linear_classifier.half()
     linear_classifier = linear_classifier.cuda()
     linear_classifier = nn.parallel.DistributedDataParallel(linear_classifier, device_ids=[args.gpu])
 
@@ -65,7 +69,8 @@ def eval_linear(args):
     val_transform = pth_transforms.Compose([
         pth_transforms.Resize(256, interpolation=3),
         pth_transforms.CenterCrop(224),
-        pth_transforms.ToTensor(),
+        pth_transforms.ToImage(),
+        pth_transforms.ToDtype(torch.float16 if args.half else torch.float32, scale=True),
         pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
     dataset_val = datasets.ImageFolder(os.path.join(args.data_path, "val"), transform=val_transform)
@@ -259,6 +264,7 @@ if __name__ == '__main__':
         help="""Whether ot not to concatenate the global average pooled features to the [CLS] token.
         We typically set this to False for ViT-Small and to True with ViT-Base.""")
     parser.add_argument('--arch', default='vit_small', type=str, help='Architecture')
+    parser.add_argument('--half', dest='half', action='store_true', help='Whether to convert and evaluate the model using float16.')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
     parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
