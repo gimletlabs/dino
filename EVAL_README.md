@@ -51,6 +51,58 @@ Test: Total time: 0:00:35 (0.090729 s / it)
 Accuracy of the network on the 50000 test images: 76.9%
 ```
 
+```sh
+python eval_knn.py --arch=vit_small --patch_size=8 --data_path=/datasets/imagenet/ILSVRC/Data/CLS-LOC --dump_features eval_knn_vits_8_features
+```
+
+```text
+Will run the code on one GPU.
+| distributed init (rank 0): env://
+git:
+  sha: 66febe141b5fc6ba5cdcf33407b1049ec3c6c462, status: has uncommited changes, branch: gimlet
+
+arch: vit_small
+batch_size_per_gpu: 128
+checkpoint_key: teacher
+data_path: /datasets/imagenet/ILSVRC/Data/CLS-LOC
+dist_url: env://
+dump_features: eval_knn_vits_8_features
+gpu: 0
+half: False
+load_features: None
+local_rank: 0
+nb_knn: [10, 20, 100, 200]
+num_workers: 10
+patch_size: 8
+pretrained_weights:
+rank: 0
+temperature: 0.07
+use_cuda: True
+world_size: 1
+Data loaded with 1281167 train and 50000 val imgs.
+Model vit_small 8x8 built.
+Please use the `--pretrained_weights` argument to indicate the path of the checkpoint to evaluate.
+Since no pretrained weights have been provided, we load the reference pretrained DINO weights.
+Extracting features for train set...
+Storing features into tensor of shape torch.Size([1281167, 384])
+  [    0/10010]  eta: 8:41:41    time: 3.126985  data: 1.496408  max mem: 4515
+  <REMOVED>
+  [10009/10010]  eta: 0:00:00    time: 0.636899  data: 0.000107  max mem: 6392
+ Total time: 1:28:46 (0.532138 s / it)
+Extracting features for val set...
+Storing features into tensor of shape torch.Size([50000, 384])
+  [  0/391]  eta: 0:10:42    time: 1.642119  data: 1.128212  max mem: 6392
+  <REMOVED>
+  [390/391]  eta: 0:00:00    time: 0.636005  data: 0.000107  max mem: 6465
+ Total time: 0:03:28 (0.534096 s / it)
+Features are ready!
+Start the k-NN classification.
+10-NN classifier result: Top1: 78.33, Top5: 90.896
+20-NN classifier result: Top1: 78.33, Top5: 92.4
+100-NN classifier result: Top1: 76.916, Top5: 93.662
+200-NN classifier result: Top1: 76.096, Top5: 93.792
+```
+
 ## ViT-S/16
 
 ```sh
@@ -86,11 +138,11 @@ Test: Total time: 0:02:54 (0.446400 s / it)
 Accuracy of the network on the 50000 test images: 79.6%
 ```
 
-```
+```sh
 python eval_knn.py --arch=vit_small --patch_size=16 --data_path=/datasets/imagenet/ILSVRC/Data/CLS-LOC --dump_features eval_knn_vits_16_features
 ```
 
-```
+```text
 Will run the code on one GPU.
 | distributed init (rank 0): env://
 git:
@@ -108,7 +160,7 @@ local_rank: 0
 nb_knn: [10, 20, 100, 200]
 num_workers: 10
 patch_size: 16
-pretrained_weights: 
+pretrained_weights:
 rank: 0
 temperature: 0.07
 use_cuda: True
@@ -119,12 +171,12 @@ Please use the `--pretrained_weights` argument to indicate the path of the check
 Since no pretrained weights have been provided, we load the reference pretrained DINO weights.
 Extracting features for train set...
 Storing features into tensor of shape torch.Size([1281167, 384])
-  <lines removed for brevity>
+  <REMOVED>
   [10009/10010]  eta: 0:00:00    time: 0.106392  data: 0.000068  max mem: 2600
  Total time: 0:14:44 (0.088400 s / it)
 Extracting features for val set...
 Storing features into tensor of shape torch.Size([50000, 384])
-  <lines removed for brevity>
+  <REMOVED>
   [390/391]  eta: 0:00:00    time: 0.106757  data: 0.000093  max mem: 2673
  Total time: 0:00:35 (0.091346 s / it)
 Features are ready!
@@ -215,3 +267,4 @@ To train the Linear Classifier head:
 ```sh
 python ./eval_linear.py --pretrained_weights=weights/dino_vitti_tinyimageimagenet.pth --data_path=/datasets/imagenet/ILSVRC/Data/CLS-LOC/ --arch=vit_tiny
 ```
+
