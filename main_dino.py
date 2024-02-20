@@ -175,7 +175,14 @@ def train_dino(args):
     elif args.arch in torchvision_models.__dict__.keys():
         student = torchvision_models.__dict__[args.arch]()
         teacher = torchvision_models.__dict__[args.arch]()
-        embed_dim = student.fc.weight.shape[1]
+
+        # Some models, notably efficientnet, use 'classifier' as the output layer
+        if hasattr(student, 'classifier'):
+            embed_dim = student.classifier[1].weight.shape[1]
+        else:
+            embed_dim = student.fc.weight.shape[1]
+        print(f"Embed_dim: {embed_dim}")
+
     else:
         print(f"Unknow architecture: {args.arch}")
 
