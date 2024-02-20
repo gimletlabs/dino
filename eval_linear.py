@@ -90,7 +90,8 @@ def eval_linear(args):
     train_transform = pth_transforms.Compose([
         pth_transforms.RandomResizedCrop(224),
         pth_transforms.RandomHorizontalFlip(),
-        pth_transforms.ToTensor(),
+        pth_transforms.ToImage(),
+        pth_transforms.ToDtype(torch.float16 if args.half else torch.float32, scale=True),
         pth_transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
     dataset_train = datasets.ImageFolder(os.path.join(args.data_path, "train"), transform=train_transform)
@@ -116,7 +117,7 @@ def eval_linear(args):
     # Optionally resume from a checkpoint
     to_restore = {"epoch": 0, "best_acc": 0.}
     utils.restart_from_checkpoint(
-        os.path.join(args.output_dir, "checkpoint.pth.tar"),
+        os.path.join(args.output_dir, "checkpoint.pth"),
         run_variables=to_restore,
         state_dict=linear_classifier,
         optimizer=optimizer,
@@ -150,7 +151,7 @@ def eval_linear(args):
                 "scheduler": scheduler.state_dict(),
                 "best_acc": best_acc,
             }
-            torch.save(save_dict, os.path.join(args.output_dir, "checkpoint.pth.tar"))
+            torch.save(save_dict, os.path.join(args.output_dir, "checkpoint.pth"))
     print("Training of the supervised linear classifier on frozen features completed.\n"
                 "Top-1 test accuracy: {acc:.1f}".format(acc=best_acc))
 
