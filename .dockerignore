@@ -1,0 +1,9 @@
+__pycache__
+.python-version
+
+# ignore output checkpoints, logs etc.
+out/
+
+# don't pull in git
+.git
+.gitignore
