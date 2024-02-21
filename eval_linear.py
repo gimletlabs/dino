@@ -46,8 +46,12 @@ def eval_linear(args):
     # otherwise, we check if the architecture is in torchvision models
     elif args.arch in torchvision_models.__dict__.keys():
         model = torchvision_models.__dict__[args.arch]()
-        embed_dim = model.fc.weight.shape[1]
-        model.fc = nn.Identity()
+        if hasattr(model, 'classifier'):
+            embed_dim = model.classifier[1].weight.shape[1]
+            model.classifier = nn.Identity()
+        else:
+            embed_dim = model.fc.weight.shape[1]
+            model.fc = nn.Identity()
     else:
         print(f"Unknow architecture: {args.arch}")
         sys.exit(1)

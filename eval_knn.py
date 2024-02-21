@@ -63,8 +63,9 @@ def extract_feature_pipeline(args):
     elif "xcit" in args.arch:
         model = torch.hub.load('facebookresearch/xcit:main', args.arch, num_classes=0)
     elif args.arch in torchvision_models.__dict__.keys():
-        model = torchvision_models.__dict__[args.arch](num_classes=0)
+        model = torchvision_models.__dict__[args.arch]()
         model.fc = nn.Identity()
+        model.classifier = nn.Identity()
     else:
         print(f"Architecture {args.arch} non supported")
         sys.exit(1)

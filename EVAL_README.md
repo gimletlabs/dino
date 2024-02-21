@@ -8,6 +8,7 @@
   - [ViT-S/16 fp16](#vit-s16-fp16)
   - [ViT-S/14 DinoV2](#vit-s14-dinov2)
   - [ViT-Ti/16](#vit-ti16)
+  - [EfficientNet-B0](#efficientnet-b0)
 
 <!-- /TOC -->
 
@@ -296,4 +297,27 @@ Accuracy at epoch 99 of the network on the 50000 test images: 63.7%
 Max accuracy so far: 63.74%
 Training of the supervised linear classifier on frozen features completed.
 Top-1 test accuracy: 63.7
+```
+
+## EfficientNet-B0
+
+```sh
+python ./eval_linear.py --arch=efficientnet_b0 --data_path=/datasets/imagenet/ILSVRC/Data/CLS-LOC/ --output_dir=out/eval_linear/efficientnetb0_16_imagenet1k --pretrained_weights=out/dino_training/efficientnetb0_16_imagenet1k/checkpoint.pth
+```
+
+```text
+Test:  [  0/131]  eta: 0:09:31  loss: 1.065596 (1.065596)  acc1: 75.000000 (75.000000)  acc5: 92.187500 (92.187500)  time: 4.362770  data: 4.268591  max mem: 4362
+Test:  [ 20/131]  eta: 0:00:32  loss: 1.234613 (1.238226)  acc1: 70.312500 (69.072423)  acc5: 88.541672 (89.471728)  time: 0.093271  data: 0.000208  max mem: 4362
+Test:  [ 40/131]  eta: 0:00:17  loss: 1.640278 (1.417445)  acc1: 57.552086 (63.744921)  acc5: 85.677086 (87.950968)  time: 0.093349  data: 0.000271  max mem: 4362
+Test:  [ 60/131]  eta: 0:00:11  loss: 1.591256 (1.449136)  acc1: 62.239586 (63.618513)  acc5: 83.593750 (87.218240)  time: 0.093471  data: 0.000286  max mem: 4362
+Test:  [ 80/131]  eta: 0:00:07  loss: 1.924977 (1.561640)  acc1: 54.427086 (61.905223)  acc5: 78.125000 (85.169113)  time: 0.093379  data: 0.000252  max mem: 4362
+Test:  [100/131]  eta: 0:00:04  loss: 2.067794 (1.660396)  acc1: 52.083336 (60.205241)  acc5: 77.083336 (83.632428)  time: 0.093135  data: 0.000119  max mem: 4362
+Test:  [120/131]  eta: 0:00:01  loss: 1.980305 (1.712500)  acc1: 53.906250 (59.276000)  acc5: 76.041672 (82.741480)  time: 0.093003  data: 0.000050  max mem: 4362
+Test:  [130/131]  eta: 0:00:00  loss: 1.825498 (1.703395)  acc1: 58.072918 (59.678002)  acc5: 81.510422 (83.006003)  time: 0.089193  data: 0.000046  max mem: 4362
+Test: Total time: 0:00:16 (0.126527 s / it)
+* Acc@1 59.678 Acc@5 83.006 loss 1.703
+Accuracy at epoch 99 of the network on the 50000 test images: 59.7%
+Max accuracy so far: 59.69%
+Training of the supervised linear classifier on frozen features completed.
+Top-1 test accuracy: 59.7
 ```
